@@ -43,7 +43,7 @@ export default function LoginPage() {
           <div>
             <div className="auth-card">
               <h2>Welcome Back 👋</h2>
-              <p>Sign in to your Tooth&amp;Care dashboard</p>
+              <p>Sign in to make your scheduling easier</p>
               <form onSubmit={doLogin}>
                 <div className="form-group">
                   <label>Email Address</label>

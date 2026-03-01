@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import appointmentsRouter  from './src/routes/appointments.js';
 import clientsRouter       from './src/routes/clients.js';
@@ -9,8 +11,14 @@ import auditRouter         from './src/routes/audit.js';
 import settingsRouter      from './src/routes/settings.js';
 import { errorHandler }    from './src/middleware/errorHandler.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
 const app  = express();
 const PORT = process.env.PORT || 5000;
+
+// Resolve the built frontend directory (one level up from backend/, into frontend/dist)
+const FRONTEND_DIST = path.join(__dirname, '..', 'frontend', 'dist');
 
 // ── Middleware ─────────────────────────────────────────────────────────────
 
@@ -35,6 +43,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// ── Serve built frontend static files ─────────────────────────────────────
+app.use(express.static(FRONTEND_DIST));
+
 // ── Health check (no auth) ─────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -47,9 +58,9 @@ app.use('/api/blocked-dates', blockedDatesRouter);
 app.use('/api/audit',         auditRouter);
 app.use('/api/settings',      settingsRouter);
 
-// ── 404 catch-all ─────────────────────────────────────────────────────────
-app.use((_req, res) => {
-  res.status(404).json({ data: null, error: 'Route not found' });
+// ── SPA fallback – serve index.html for any non-API route ─────────────────
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
 });
 
 // ── Global error handler ───────────────────────────────────────────────────

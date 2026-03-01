@@ -1,0 +1,22 @@
+{
+  "name": "dental-scheduler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm install --prefix backend && npm install --include=dev --prefix frontend && npm run build --prefix frontend",
+    "start": "npm run start --prefix backend"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mark-juswa/Dental-Scheduler.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mark-juswa/Dental-Scheduler/issues"
+  },
+  "homepage": "https://github.com/mark-juswa/Dental-Scheduler#readme"
+}

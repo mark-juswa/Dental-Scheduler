@@ -3,7 +3,7 @@ import { useApp } from '../../context/useApp.js';
 import { appointmentsApi, clientsApi } from '../../services/apiServices.js';
 import { showToast } from '../../ui/toastService.js';
 import { todayPHT, parseTime, checkConflict } from '../../utils/calendarHelpers.js';
-import { PROCEDURES, STATUSES } from '../../utils/constants.js';
+import { PROCEDURES as DEFAULT_PROCEDURES, STATUSES } from '../../utils/constants.js';
 import PhilippineAddressSelect from './PhilippineAddressSelect.jsx';
 import { buildAddressString, parseAddressString } from '../../utils/phAddress.js';
 
@@ -180,7 +180,13 @@ export default function AppointmentModal() {
                 <label>Procedure Type *</label>
                 <select className="form-input" value={form.procedure} onChange={e => set('procedure', e.target.value)}>
                   <option value="">Select Procedure</option>
-                  {PROCEDURES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  {DEFAULT_PROCEDURES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  {(settings.customProcedures || []).length > 0 && (
+                    <option disabled>──── Custom ────</option>
+                  )}
+                  {(settings.customProcedures || []).map(cp => (
+                    <option key={cp.key} value={cp.key}>{cp.label}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">

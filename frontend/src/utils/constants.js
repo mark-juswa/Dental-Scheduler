@@ -35,3 +35,6 @@ export const PROCEDURES = [
 ];
 
 export const STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'];
+
+// Default color palette used when creating a new custom procedure
+export const DEFAULT_PROC_COLOR = { bg: '#f1f5f9', border: '#64748b', text: '#1e293b' };

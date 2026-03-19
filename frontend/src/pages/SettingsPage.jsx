@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useApp } from '../context/useApp.js';
 import { settingsApi, blockedDatesApi } from '../services/apiServices.js';
 import { showToast } from '../ui/toastService.js';
-import { PROC_LABELS } from '../utils/constants.js';
+import { PROC_LABELS, DEFAULT_PROC_COLOR } from '../utils/constants.js';
 import { useProcColors } from '../hooks/useProcColors.js';
 import { appointmentsApi } from '../services/apiServices.js';
 
-// All procedures that can be color-customized
-const ALL_PROCS = [
+// Built-in default procedure keys
+const DEFAULT_PROCS = [
   'extraction','filling','oralProphylaxis','denture','ortho','prosto',
   'consultation','other','cleaning','rootCanal','orthodontics','whitening',
 ];
@@ -18,6 +18,17 @@ export default function SettingsPage() {
   const PROC_COLORS = useProcColors();
   const [blockDateInput, setBlockDateInput] = useState('');
   const [expandedProc, setExpandedProc] = useState(null); // which proc row is open
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newProcName, setNewProcName] = useState('');
+  const [newProcColors, setNewProcColors] = useState({ ...DEFAULT_PROC_COLOR });
+
+  // Build ALL_PROCS dynamically: defaults + custom
+  const customProcedures = settings.customProcedures || [];
+  const ALL_PROCS = [...DEFAULT_PROCS, ...customProcedures.map(cp => cp.key)];
+
+  // Build a combined labels map: defaults + custom
+  const allLabels = { ...PROC_LABELS };
+  for (const cp of customProcedures) { allLabels[cp.key] = cp.label; }
 
   async function saveSetting(patch) {
     const merged = { ...settings, ...patch };
@@ -114,6 +125,47 @@ export default function SettingsPage() {
   function isCustomized(proc) {
     const c = settings.procColors || {};
     return !!(c[proc] && Object.keys(c[proc]).length > 0);
+  }
+
+  // Check if a procedure is user-created (not a default)
+  function isCustomProcedure(proc) {
+    return !DEFAULT_PROCS.includes(proc);
+  }
+
+  // Add a new custom procedure
+  async function addCustomProcedure() {
+    const label = newProcName.trim();
+    if (!label) { showToast('Enter a procedure name', 'warning'); return; }
+    // Generate a camelCase key from the label
+    const key = label
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+(.)/g, (_, c) => c.toUpperCase())
+      .replace(/^\s+/, '');
+    if (!key) { showToast('Invalid procedure name', 'warning'); return; }
+    // Check for duplicates
+    if (DEFAULT_PROCS.includes(key) || customProcedures.some(cp => cp.key === key)) {
+      showToast('A procedure with this name already exists', 'warning'); return;
+    }
+    const newProc = { key, label, ...newProcColors };
+    const updated = [...customProcedures, newProc];
+    await saveSetting({ customProcedures: updated });
+    setNewProcName('');
+    setNewProcColors({ ...DEFAULT_PROC_COLOR });
+    setShowAddForm(false);
+    showToast(`"${label}" procedure added`, 'success');
+  }
+
+  // Delete a custom procedure
+  async function deleteCustomProcedure(key) {
+    const proc = customProcedures.find(cp => cp.key === key);
+    const updated = customProcedures.filter(cp => cp.key !== key);
+    // Also remove any procColors overrides for this key
+    const colors = { ...(settings.procColors || {}) };
+    delete colors[key];
+    await saveSetting({ customProcedures: updated, procColors: colors });
+    if (expandedProc === key) setExpandedProc(null);
+    showToast(`"${proc?.label || key}" removed`, 'success');
   }
 
   return (
@@ -238,15 +290,89 @@ export default function SettingsPage() {
               <h3><i className="fa fa-palette" style={{ color: 'var(--primary)', marginRight: 7 }}></i> Procedure Colors</h3>
               <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-m)' }}>Click a row to customize</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowAddForm(f => !f)} title="Add custom procedure">
+                  <i className={`fa fa-${showAddForm ? 'times' : 'plus'}`}></i> {showAddForm ? 'Cancel' : 'Add Procedure'}
+                </button>
                 <button className="btn btn-ghost btn-sm" onClick={resetAllProcColors} title="Reset all to defaults">
                   <i className="fa fa-undo"></i> Reset All
                 </button>
               </div>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
+              {/* Add Procedure Inline Form */}
+              {showAddForm && (
+                <div style={{
+                  padding: '14px 18px',
+                  borderBottom: '1px solid var(--border)',
+                  background: 'var(--surface-2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  animation: 'fadeIn .15s ease',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <i className="fa fa-plus-circle" style={{ color: 'var(--primary)', fontSize: 14, flexShrink: 0 }} />
+                    <input
+                      className="form-input"
+                      placeholder="Procedure name (e.g. Implant)"
+                      value={newProcName}
+                      onChange={e => setNewProcName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') addCustomProcedure(); }}
+                      style={{ flex: 1, minWidth: 160, fontSize: 13 }}
+                      autoFocus
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingLeft: 24, flexWrap: 'wrap' }}>
+                    {[
+                      { channel: 'bg',     label: 'Background',     icon: 'fa-fill-drip'    },
+                      { channel: 'border', label: 'Accent / Border', icon: 'fa-border-style' },
+                      { channel: 'text',   label: 'Text',           icon: 'fa-font'         },
+                    ].map(({ channel, label, icon }) => (
+                      <div key={channel} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <i className={`fa ${icon}`} style={{ fontSize: 11, color: 'var(--text-m)' }} />
+                        <span style={{ fontSize: 11, color: 'var(--text-m)' }}>{label}</span>
+                        <label style={{
+                          width: 30, height: 30,
+                          borderRadius: 7,
+                          background: newProcColors[channel],
+                          border: '2px solid var(--border)',
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          position: 'relative', overflow: 'hidden', flexShrink: 0,
+                        }}>
+                          <input
+                            type="color"
+                            value={newProcColors[channel]}
+                            style={{ opacity: 0, position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'pointer', border: 'none', padding: 0 }}
+                            onChange={e => setNewProcColors(prev => ({ ...prev, [channel]: e.target.value }))}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Preview chip */}
+                  {newProcName.trim() && (
+                    <div style={{ paddingLeft: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-m)' }}>Preview:</span>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        padding: '2px 10px', borderRadius: 20,
+                        background: newProcColors.bg, color: newProcColors.text,
+                        border: `1.5px solid ${newProcColors.border}`,
+                      }}>{newProcName.trim()}</span>
+                    </div>
+                  )}
+                  <div style={{ paddingLeft: 24 }}>
+                    <button className="btn btn-primary btn-sm" onClick={addCustomProcedure} style={{ fontSize: 12 }}>
+                      <i className="fa fa-check"></i> Add Procedure
+                    </button>
+                  </div>
+                </div>
+              )}
               {ALL_PROCS.map((proc, idx) => {
                 const c = PROC_COLORS[proc] || PROC_COLORS.other;
                 const customized = isCustomized(proc);
+                const isCustom = isCustomProcedure(proc);
                 const isOpen = expandedProc === proc;
 
                 return (
@@ -285,7 +411,7 @@ export default function SettingsPage() {
 
                       {/* Label */}
                       <span style={{ fontWeight: 600, fontSize: 13, flex: 1 }}>
-                        {PROC_LABELS[proc] || proc}
+                        {allLabels[proc] || proc}
                       </span>
 
                       {/* Color swatches preview strip */}
@@ -310,17 +436,34 @@ export default function SettingsPage() {
                         whiteSpace: 'nowrap',
                         minWidth: 80, textAlign: 'center',
                       }}>
-                        {PROC_LABELS[proc] || proc}
+                        {allLabels[proc] || proc}
                       </span>
 
                       {/* Custom badge */}
-                      {customized && (
+                      {(customized || isCustom) && (
                         <span style={{
                           fontSize: 9, fontWeight: 700,
                           background: c.border, color: '#fff',
                           padding: '1px 7px', borderRadius: 20,
                           letterSpacing: '.05em', flexShrink: 0,
-                        }}>CUSTOM</span>
+                        }}>{isCustom ? 'USER' : 'CUSTOM'}</span>
+                      )}
+
+                      {/* Delete button for custom procedures */}
+                      {isCustom && (
+                        <button
+                          onClick={e => { e.stopPropagation(); deleteCustomProcedure(proc); }}
+                          title="Remove this procedure"
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: 'var(--err)', fontSize: 13, padding: '2px 4px',
+                            opacity: 0.7, transition: 'opacity .15s', flexShrink: 0,
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+                        >
+                          <i className="fa fa-trash-alt"></i>
+                        </button>
                       )}
                     </div>
 
@@ -349,7 +492,7 @@ export default function SettingsPage() {
                           <i className="fa fa-tooth" style={{ color: c.border, fontSize: 14 }} />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 700, fontSize: 12, color: c.text }}>Sample Patient Name</div>
-                            <div style={{ fontSize: 10, color: c.text, opacity: .75 }}>09:00 – 10:00 · {PROC_LABELS[proc] || proc}</div>
+                            <div style={{ fontSize: 10, color: c.text, opacity: .75 }}>09:00 – 10:00 · {allLabels[proc] || proc}</div>
                           </div>
                           <span style={{ fontSize: 10, fontWeight: 700, background: c.border, color: '#fff', padding: '2px 8px', borderRadius: 4 }}>
                             confirmed
@@ -406,7 +549,7 @@ export default function SettingsPage() {
                               style={{ fontSize: 11 }}
                               onClick={() => { resetProcColor(proc); setExpandedProc(null); }}
                             >
-                              <i className="fa fa-undo"></i> Reset {PROC_LABELS[proc]} to default
+                              <i className="fa fa-undo"></i> Reset {allLabels[proc] || proc} to default
                             </button>
                           </div>
                         )}

@@ -13,11 +13,23 @@ import { PROC_COLORS as DEFAULTS } from '../utils/constants.js';
 export function useProcColors() {
   const { state } = useApp();
   const custom = state.settings?.procColors || {};
+  const customProcs = state.settings?.customProcedures || [];
 
-  // Merge custom overrides per-procedure, per-channel
+  // Merge custom color overrides per-procedure, per-channel (built-in defaults)
   const merged = {};
   for (const key of Object.keys(DEFAULTS)) {
     merged[key] = { ...DEFAULTS[key], ...(custom[key] || {}) };
   }
+
+  // Also include user-created custom procedures
+  for (const cp of customProcs) {
+    merged[cp.key] = {
+      bg: cp.bg,
+      border: cp.border,
+      text: cp.text,
+      ...(custom[cp.key] || {}),
+    };
+  }
+
   return merged;
 }

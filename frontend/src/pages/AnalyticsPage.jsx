@@ -1,6 +1,6 @@
 import { useApp } from '../context/useApp.js';
 import { todayPHT, fmtDate } from '../utils/calendarHelpers.js';
-import { PROC_LABELS, DOCTOR_COLORS } from '../utils/constants.js';
+import { PROC_LABELS } from '../utils/constants.js';
 import { useProcColors } from '../hooks/useProcColors.js';
 import { useMemo, useState } from 'react';
 
@@ -55,6 +55,7 @@ const next7 = useMemo(() => {
   // ── Doctor Overview state ─────────────────────────────────────────────────
   const [dateFilter, setDateFilter] = useState('today');
   const [searchQuery, setSearchQuery] = useState('');
+  const [doctorFilter, setDoctorFilter] = useState('all');
 
   // Compute date range for the selected filter
   const dateRange = useMemo(() => {
@@ -83,7 +84,7 @@ const next7 = useMemo(() => {
     }
   }, [dateFilter, t]);
 
-  // Filter appointments by date range and search, then split by doctor
+  // Filter appointments by date range, search, and doctor
   const filteredAppts = useMemo(() => {
     let list = [...appointments];
     // Date filter
@@ -98,13 +99,24 @@ const next7 = useMemo(() => {
         (a.contactNumber || '').toLowerCase().includes(q)
       );
     }
+    // Doctor filter
+    if (doctorFilter !== 'all') {
+      list = list.filter(a => (a.doctor || 'dr1') === doctorFilter);
+    }
     // Sort by date + time
     list.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
     return list;
-  }, [appointments, dateRange, searchQuery]);
+  }, [appointments, dateRange, searchQuery, doctorFilter]);
 
-  const dr1Appts = filteredAppts.filter(a => a.doctor === 'dr1' || !a.doctor);
-  const dr2Appts = filteredAppts.filter(a => a.doctor === 'dr2');
+  // Group filtered appointments by date
+  const groupedByDate = useMemo(() => {
+    const groups = {};
+    for (const a of filteredAppts) {
+      if (!groups[a.date]) groups[a.date] = [];
+      groups[a.date].push(a);
+    }
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [filteredAppts]);
 
   // Date filter buttons config
   const dateFilters = [
@@ -115,119 +127,18 @@ const next7 = useMemo(() => {
     { key: 'all',      label: 'All',        icon: 'fa-infinity' },
   ];
 
-  // Render a doctor panel
-  function DoctorPanel({ doctor, name, appts, color }) {
-    const panelPending   = appts.filter(a => a.status === 'pending').length;
-    const panelCompleted = appts.filter(a => a.status === 'completed').length;
-    const panelConfirmed = appts.filter(a => a.status === 'confirmed').length;
-    const panelCancelled = appts.filter(a => a.status === 'cancelled').length;
+  // Doctor filter buttons config
+  const doctorFilters = [
+    { key: 'all', label: 'All Doctors' },
+    { key: 'dr1', label: dr1Name },
+    { key: 'dr2', label: dr2Name },
+  ];
 
-    const miniStats = [
-      { label: 'Total',     num: appts.length, col: color },
-      { label: 'Pending',   num: panelPending,   col: '#d97706' },
-      { label: 'Confirmed', num: panelConfirmed,  col: '#3b82f6' },
-      { label: 'Completed', num: panelCompleted, col: '#059669' },
-      { label: 'Cancelled', num: panelCancelled,  col: '#94a3b8' },
-    ];
-
-    return (
-      <div className="card" style={{ flex: 1, minWidth: 0 }}>
-        <div className="card-header" style={{ borderBottom: `3px solid ${color}` }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <i className="fa fa-user-md" style={{ color }}></i> {name}
-          </h3>
-          <span style={{
-            fontSize: 11, fontWeight: 700, background: color, color: '#fff',
-            padding: '2px 10px', borderRadius: 20,
-          }}>{appts.length} appointment{appts.length !== 1 ? 's' : ''}</span>
-        </div>
-
-        {/* Mini stats row */}
-        <div style={{
-          display: 'flex', gap: 2, padding: '10px 14px',
-          borderBottom: '1px solid var(--border)', flexWrap: 'wrap',
-        }}>
-          {miniStats.map(s => (
-            <div key={s.label} style={{
-              flex: 1, minWidth: 60, textAlign: 'center', padding: '6px 4px',
-              borderRadius: 8, background: 'var(--surface-2)',
-            }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: s.col }}>{s.num}</div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-m)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Appointment list */}
-        <div className="card-body" style={{ padding: 0, maxHeight: 400, overflowY: 'auto' }}>
-          {appts.length === 0 ? (
-            <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-l)' }}>
-              <i className="fa fa-calendar-times" style={{ fontSize: 28, marginBottom: 8, display: 'block', opacity: 0.5 }}></i>
-              <p style={{ fontSize: 12, fontWeight: 600 }}>No appointments found</p>
-              <p style={{ fontSize: 11 }}>Try changing the date filter or search</p>
-            </div>
-          ) : appts.map((a, idx) => {
-            const c = PROC_COLORS[a.procedure] || PROC_COLORS.other;
-            const isCancelled = a.status === 'cancelled';
-            return (
-              <div key={a.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 14px',
-                borderBottom: idx < appts.length - 1 ? '1px solid var(--border)' : 'none',
-                opacity: isCancelled ? 0.55 : 1,
-                transition: 'background .15s',
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                {/* Color dot */}
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  background: isCancelled ? '#f1f5f9' : c.bg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: isCancelled ? '#94a3b8' : c.border, fontSize: 13, flexShrink: 0,
-                  border: `1.5px solid ${isCancelled ? '#cbd5e1' : c.border}`,
-                }}>
-                  <i className="fa fa-tooth"></i>
-                </div>
-
-                {/* Name + date/time */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontWeight: 700, fontSize: 12,
-                    textDecoration: isCancelled ? 'line-through' : 'none',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>
-                    {a.firstName} {a.lastName}
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-m)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <span><i className="fa fa-calendar" style={{ marginRight: 3 }}></i>{a.date}</span>
-                    <span><i className="fa fa-clock" style={{ marginRight: 3 }}></i>{a.startTime}–{a.endTime}</span>
-                  </div>
-                </div>
-
-                {/* Procedure chip */}
-                <span style={{
-                  fontSize: 9, fontWeight: 700,
-                  padding: '2px 8px', borderRadius: 20,
-                  background: isCancelled ? '#f1f5f9' : c.bg,
-                  color: isCancelled ? '#94a3b8' : c.text,
-                  border: `1px solid ${isCancelled ? '#cbd5e1' : c.border}`,
-                  whiteSpace: 'nowrap', flexShrink: 0,
-                }}>
-                  {PROC_LABELS[a.procedure] || a.procedure || 'Other'}
-                </span>
-
-                {/* Status badge */}
-                <span className={`status-badge status-${a.status}`} style={{ fontSize: 9, flexShrink: 0 }}>
-                  {a.status}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
+  // Format date for group headers
+  function formatDateHeader(dateStr) {
+    const d = new Date(`${dateStr}T00:00:00`);
+    const opts = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+    return d.toLocaleDateString('en-US', opts);
   }
 
   return (
@@ -319,87 +230,181 @@ const next7 = useMemo(() => {
         </div>
 
         {/* ── Doctor Overview Section ────────────────────────────────────────── */}
-        <div style={{ marginTop: 24, marginBottom: 8 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <i className="fa fa-user-md" style={{ color: 'var(--primary)' }}></i> Doctor Overview
-          </h2>
-          <p style={{ fontSize: 12, color: 'var(--text-m)' }}>
-            Per-doctor appointment breakdown with filters
-          </p>
-        </div>
-
-        {/* Filter bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          flexWrap: 'wrap', marginBottom: 14,
-        }}>
-          {/* Date filter pills */}
-          <div style={{
-            display: 'flex', gap: 4, background: 'var(--surface-2)',
-            borderRadius: 10, padding: 3, flexShrink: 0,
-          }}>
-            {dateFilters.map(f => (
-              <button
-                key={f.key}
-                onClick={() => setDateFilter(f.key)}
-                style={{
-                  border: 'none', cursor: 'pointer',
-                  padding: '6px 14px', borderRadius: 8,
-                  fontSize: 11, fontWeight: 700,
-                  background: dateFilter === f.key ? 'var(--primary)' : 'transparent',
-                  color: dateFilter === f.key ? '#fff' : 'var(--text-m)',
-                  transition: 'all .15s',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                }}
-              >
-                <i className={`fa ${f.icon}`} style={{ fontSize: 10 }}></i> {f.label}
-              </button>
-            ))}
+        <div className="card" style={{ marginTop: 24, marginBottom: 18 }}>
+          <div className="card-header">
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <i className="fa fa-user-md" style={{ color: 'var(--text-m)' }}></i> Doctor Schedule
+            </h3>
+            <span style={{ fontSize: 11, color: 'var(--text-m)', fontWeight: 600 }}>
+              {filteredAppts.length} appointment{filteredAppts.length !== 1 ? 's' : ''}
+            </span>
           </div>
 
-          {/* Search input */}
-          <div style={{
-            flex: 1, minWidth: 180, position: 'relative',
-          }}>
-            <i className="fa fa-search" style={{
-              position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
-              fontSize: 11, color: 'var(--text-l)', pointerEvents: 'none',
-            }}></i>
-            <input
-              className="form-input"
-              type="text"
-              placeholder="Search patients by name or number…"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              style={{
-                paddingLeft: 30, fontSize: 12, height: 34,
-                borderRadius: 8, width: '100%',
-              }}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                style={{
-                  position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-l)', fontSize: 12, padding: 2,
-                }}
-              >
-                <i className="fa fa-times"></i>
-              </button>
-            )}
+          <div className="card-body" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Filter bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              {/* Date filter pills */}
+              <div style={{
+                display: 'flex', gap: 3, background: 'var(--surface-2)',
+                borderRadius: 8, padding: 3, flexShrink: 0,
+              }}>
+                {dateFilters.map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setDateFilter(f.key)}
+                    style={{
+                      border: 'none', cursor: 'pointer',
+                      padding: '5px 12px', borderRadius: 6,
+                      fontSize: 11, fontWeight: 600,
+                      background: dateFilter === f.key ? 'var(--primary)' : 'transparent',
+                      color: dateFilter === f.key ? '#fff' : 'var(--text-m)',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search input */}
+              <div style={{ flex: 1, minWidth: 160, position: 'relative' }}>
+                <i className="fa fa-search" style={{
+                  position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+                  fontSize: 11, color: 'var(--text-l)', pointerEvents: 'none',
+                }}></i>
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder="Search patients…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ paddingLeft: 28, fontSize: 12, height: 32, borderRadius: 6, width: '100%' }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--text-l)', fontSize: 11, padding: 2,
+                    }}
+                  >
+                    <i className="fa fa-times"></i>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Doctor filter toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-m)' }}>Doctor:</span>
+              <div style={{
+                display: 'flex', gap: 3, background: 'var(--surface-2)',
+                borderRadius: 8, padding: 3,
+              }}>
+                {doctorFilters.map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setDoctorFilter(f.key)}
+                    style={{
+                      border: 'none', cursor: 'pointer',
+                      padding: '5px 14px', borderRadius: 6,
+                      fontSize: 11, fontWeight: 600,
+                      background: doctorFilter === f.key ? 'var(--text)' : 'transparent',
+                      color: doctorFilter === f.key ? 'var(--bg)' : 'var(--text-m)',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Schedule list grouped by date */}
+            <div style={{ maxHeight: 480, overflowY: 'auto' }}>
+              {groupedByDate.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-l)' }}>
+                  <i className="fa fa-calendar-times" style={{ fontSize: 24, marginBottom: 8, display: 'block', opacity: 0.4 }}></i>
+                  <p style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>No appointments found</p>
+                  <p style={{ fontSize: 11, margin: '4px 0 0' }}>Try changing the date filter, doctor, or search</p>
+                </div>
+              ) : groupedByDate.map(([date, appts]) => (
+                <div key={date} style={{ marginBottom: 6 }}>
+                  {/* Date header */}
+                  <div style={{
+                    fontSize: 11, fontWeight: 700, color: 'var(--text-m)',
+                    padding: '8px 0 4px', borderBottom: '1px solid var(--border)',
+                    textTransform: 'uppercase', letterSpacing: '.03em',
+                    position: 'sticky', top: 0, background: 'var(--surface)',
+                    zIndex: 1,
+                  }}>
+                    {formatDateHeader(date)}
+                    <span style={{ fontWeight: 400, marginLeft: 8, textTransform: 'none', letterSpacing: 0 }}>
+                      — {appts.length} appointment{appts.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {/* Appointment rows */}
+                  {appts.map((a, idx) => {
+                    const isCancelled = a.status === 'cancelled';
+                    const docLabel = (a.doctor || 'dr1') === 'dr2' ? dr2Name : dr1Name;
+                    return (
+                      <div key={a.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '9px 8px',
+                        borderBottom: idx < appts.length - 1 ? '1px solid var(--border)' : 'none',
+                        opacity: isCancelled ? 0.5 : 1,
+                        transition: 'background .12s',
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {/* Time */}
+                        <span style={{
+                          fontSize: 11, fontWeight: 600, color: 'var(--text-m)',
+                          minWidth: 90, flexShrink: 0, fontFamily: 'monospace',
+                        }}>
+                          {a.startTime} – {a.endTime}
+                        </span>
+
+                        {/* Patient name */}
+                        <span style={{
+                          flex: 1, fontSize: 13, fontWeight: 600, minWidth: 0,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          textDecoration: isCancelled ? 'line-through' : 'none',
+                        }}>
+                          {a.firstName} {a.lastName}
+                        </span>
+
+                        {/* Procedure label */}
+                        <span style={{
+                          fontSize: 11, color: 'var(--text-m)', flexShrink: 0,
+                        }}>
+                          {PROC_LABELS[a.procedure] || a.procedure || 'Other'}
+                        </span>
+
+                        {/* Doctor tag */}
+                        <span style={{
+                          fontSize: 10, fontWeight: 600,
+                          padding: '2px 8px', borderRadius: 4,
+                          background: 'var(--surface-2)', color: 'var(--text-m)',
+                          flexShrink: 0, whiteSpace: 'nowrap',
+                        }}>
+                          {docLabel}
+                        </span>
+
+                        {/* Status */}
+                        <span className={`status-badge status-${a.status}`} style={{ fontSize: 9, flexShrink: 0 }}>
+                          {a.status}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-
-          {/* Result count */}
-          <span style={{ fontSize: 11, color: 'var(--text-m)', fontWeight: 600, flexShrink: 0 }}>
-            {filteredAppts.length} result{filteredAppts.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-
-        {/* Doctor panels — side by side */}
-        <div style={{ display: 'flex', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
-          <DoctorPanel doctor="dr1" name={dr1Name} appts={dr1Appts} color={DOCTOR_COLORS.dr1} />
-          <DoctorPanel doctor="dr2" name={dr2Name} appts={dr2Appts} color={DOCTOR_COLORS.dr2} />
         </div>
 
       </div>

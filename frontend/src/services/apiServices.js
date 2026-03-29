@@ -41,3 +41,11 @@ export const settingsApi = {
   get: () => api.get('/settings').then(r => r.data.data),
   save: (body) => api.put('/settings', body).then(r => r.data.data),
 };
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+
+export const usersApi = {
+  getAll: () => api.get('/users').then(r => r.data.data),
+  updateRole: (id, role) => api.put(`/users/${id}/role`, { role }).then(r => r.data.data),
+  delete: (id) => api.delete(`/users/${id}`).then(r => r.data.data),
+};

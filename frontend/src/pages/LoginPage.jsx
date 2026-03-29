@@ -25,7 +25,10 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email: re, password,
-      options: { data: { full_name: `${firstName} ${lastName}` } },
+      options: { 
+        data: { full_name: `${firstName} ${lastName}`, role: 'user' },
+        emailRedirectTo: window.location.origin
+      },
     });
     setLoading(false);
     if (error) showToast(error.message, 'error');

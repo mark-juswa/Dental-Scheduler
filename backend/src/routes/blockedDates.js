@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import {
   getBlockedDates,
   blockDate,
@@ -11,7 +11,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.get('/',     getBlockedDates);
-router.post('/',    blockDate);
-router.delete('/:id', unblockDate);
+router.post('/',    requireAdmin, blockDate);
+router.delete('/:id', requireAdmin, unblockDate);
 
 export default router;

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useApp } from '../../context/useApp.js';
 import { getTopbarSubtitle } from '../../utils/calendarHelpers.js';
 
-export default function Topbar({ onHamburger, onSearch }) {
+export default function Topbar({ user, onHamburger, onSearch }) {
   const { state, actions } = useApp();
+  const role = user?.user_metadata?.role || 'user';
   const { activeView, calView, currentDate, settings } = state;
   const [searchVal, setSearchVal] = useState('');
 
@@ -104,10 +105,12 @@ export default function Topbar({ onHamburger, onSearch }) {
         <button className="icon-btn print-btn" onClick={() => window.print()}>
           <i className="fa fa-print"></i>
         </button>
-        <button className="btn-new" onClick={() => actions.openApptModal()}>
-          <i className="fa fa-plus"></i>
-          <span>New Appointment</span>
-        </button>
+        {role !== 'user' && (
+          <button className="btn-new" onClick={() => actions.openApptModal()}>
+            <i className="fa fa-plus"></i>
+            <span>New Appointment</span>
+          </button>
+        )}
       </div>
     </header>
   );

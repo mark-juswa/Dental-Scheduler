@@ -22,3 +22,19 @@ export async function requireAuth(req, res, next) {
   req.user = user;
   next();
 }
+
+export function requireAdmin(req, res, next) {
+  const role = req.user?.user_metadata?.role || 'user';
+  if (role !== 'admin' && role !== 'super_admin') {
+    return res.status(403).json({ data: null, error: 'Forbidden: Requires admin privileges' });
+  }
+  next();
+}
+
+export function requireSuperAdmin(req, res, next) {
+  const role = req.user?.user_metadata?.role || 'user';
+  if (role !== 'super_admin') {
+    return res.status(403).json({ data: null, error: 'Forbidden: Requires super admin privileges' });
+  }
+  next();
+}

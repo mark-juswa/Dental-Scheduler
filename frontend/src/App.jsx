@@ -18,11 +18,13 @@ import ClientsPage from './pages/ClientsPage.jsx';
 import AnalyticsPage from './pages/AnalyticsPage.jsx';
 import AuditPage from './pages/AuditPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
 
 function AppShell({ user }) {
   const { state, actions } = useApp();
   const { activeView, appointments } = state;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const role = user.user_metadata?.role || 'user';
 
   useRealtime();
 
@@ -30,12 +32,20 @@ function AppShell({ user }) {
   useEffect(() => {
     async function loadAll() {
       try {
-        const [appts, cls, bds, stg] = await Promise.all([
-          appointmentsApi.getAll(),
-          clientsApi.getAll(),
-          blockedDatesApi.getAll(),
-          settingsApi.get(),
-        ]);
+        // Base arrays
+        let appts = [], cls = [], bds = [], stg = {};
+        
+        // Everyone can fetch appointments and blocked dates
+        appts = await appointmentsApi.getAll();
+        bds = await blockedDatesApi.getAll();
+
+        if (role === 'admin' || role === 'super_admin') {
+          cls = await clientsApi.getAll();
+        }
+        if (role === 'super_admin') {
+          stg = await settingsApi.get();
+        }
+
         actions.setAppointments(appts);
         actions.setClients(cls);
         actions.setBlockedDates(bds);
@@ -75,7 +85,8 @@ function AppShell({ user }) {
         actions.closePopover();
       }
       if (e.key === 'n' && activeView === 'calendar') {
-        actions.openApptModal();
+        const userRole = user?.user_metadata?.role || 'user';
+        if (userRole !== 'user') actions.openApptModal();
       }
       if (e.key === 'ArrowLeft' && activeView === 'calendar') {
         const d = new Date(state.currentDate);
@@ -119,13 +130,14 @@ function AppShell({ user }) {
     analytics: <AnalyticsPage />,
     audit:     <AuditPage />,
     settings:  <SettingsPage />,
+    users:     <UsersPage />,
   };
 
   return (
     <div className="app-shell">
       <Sidebar user={user} sidebarOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className="main-area">
-        <Topbar onHamburger={() => setSidebarOpen(true)} onSearch={handleSearch} />
+        <Topbar user={user} onHamburger={() => setSidebarOpen(true)} onSearch={handleSearch} />
         <div className="content-area">
           {pageMap[activeView]}
         </div>

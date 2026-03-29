@@ -15,14 +15,24 @@ export default function Sidebar({ user, sidebarOpen, onClose }) {
     await supabase.auth.signOut();
   }
 
-  const navItems = [
-    { view: 'calendar',   icon: 'fa-calendar-alt', label: 'Calendar' },
-    { view: 'clients',    icon: 'fa-users',         label: 'Clients', badge: clients.length },
-    { view: 'analytics',  icon: 'fa-chart-bar',     label: 'Analytics', section: 'Reports' },
-    { view: 'audit',      icon: 'fa-history',       label: 'Audit Log' },
-    { view: 'settings',   icon: 'fa-cog',           label: 'Settings', section: 'System' },
+  const role = user?.user_metadata?.role || 'user';
+  
+  let navItems = [
+    { view: 'calendar',   icon: 'fa-calendar-alt', label: 'Calendar' }
   ];
 
+  if (role === 'admin' || role === 'super_admin') {
+    navItems.push({ view: 'clients',    icon: 'fa-users',         label: 'Clients', badge: clients.length });
+    navItems.push({ view: 'analytics',  icon: 'fa-chart-bar',     label: 'Analytics', section: 'Reports' });
+  }
+
+  if (role === 'super_admin') {
+    navItems.push({ view: 'audit',      icon: 'fa-history',       label: 'Audit Log' });
+    navItems.push({ view: 'settings',   icon: 'fa-cog',           label: 'Settings', section: 'System' });
+    navItems.push({ view: 'users',      icon: 'fa-user-shield',   label: 'Users' });
+  }
+
+  const roleDisplay = role === 'super_admin' ? 'Super Admin' : (role === 'admin' ? 'Administrator' : 'Staff');
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Admin';
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=2563EB&color=fff`;
 
@@ -72,7 +82,7 @@ export default function Sidebar({ user, sidebarOpen, onClose }) {
             <img src={avatarUrl} alt="avatar" />
             <div className="sidebar-user-info">
               <strong>{displayName}</strong>
-              <span>Clinic Administrator</span>
+              <span>{roleDisplay}</span>
             </div>
           </div>
         </div>

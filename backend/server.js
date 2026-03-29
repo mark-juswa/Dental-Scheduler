@@ -9,6 +9,7 @@ import clientsRouter       from './src/routes/clients.js';
 import blockedDatesRouter  from './src/routes/blockedDates.js';
 import auditRouter         from './src/routes/audit.js';
 import settingsRouter      from './src/routes/settings.js';
+import usersRouter         from './src/routes/users.js';
 import { errorHandler }    from './src/middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -57,6 +58,7 @@ app.use('/api/clients',       clientsRouter);
 app.use('/api/blocked-dates', blockedDatesRouter);
 app.use('/api/audit',         auditRouter);
 app.use('/api/settings',      settingsRouter);
+app.use('/api/users',         usersRouter);
 
 // ── SPA fallback – serve index.html for any non-API route ─────────────────
 app.get('*splat', (_req, res) => {

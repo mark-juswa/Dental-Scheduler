@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   dr1Name:         'Dr. A',
   dr2Name:         'Dr. B',
   zoomLevel:       1.0,
+  lastBackupDate:  null,
 };
 
 // ── GET /api/settings ──────────────────────────────────────────────────────

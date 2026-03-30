@@ -49,3 +49,11 @@ export const usersApi = {
   updateRole: (id, role) => api.put(`/users/${id}/role`, { role }).then(r => r.data.data),
   delete: (id) => api.delete(`/users/${id}`).then(r => r.data.data),
 };
+
+// ── Backups ───────────────────────────────────────────────────────────────────
+
+export const backupApi = {
+  export: (updateDate = false) => api.get(`/backup/export?updateDate=${updateDate}`, { responseType: 'blob' }).then(r => r.data),
+  restore: (formData) => api.post('/backup/restore', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data.data),
+  purge: (months) => api.delete(`/backup/purge?months=${months}`).then(r => r.data.data),
+};

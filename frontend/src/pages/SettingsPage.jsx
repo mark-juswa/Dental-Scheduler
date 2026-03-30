@@ -4,7 +4,7 @@ import { settingsApi, blockedDatesApi } from '../services/apiServices.js';
 import { showToast } from '../ui/toastService.js';
 import { PROC_LABELS, DEFAULT_PROC_COLOR } from '../utils/constants.js';
 import { useProcColors } from '../hooks/useProcColors.js';
-import { appointmentsApi } from '../services/apiServices.js';
+import { appointmentsApi, backupApi } from '../services/apiServices.js';
 
 // Built-in default procedure keys
 const DEFAULT_PROCS = [
@@ -56,30 +56,62 @@ export default function SettingsPage() {
     } catch (err) { showToast(err.message, 'error'); }
   }
 
-  function exportData() {
-    const data = { appointments: state.appointments, clients: state.clients, blockedDates: state.blockedDates };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'toothcare-backup.json'; a.click();
-    URL.revokeObjectURL(url);
-    showToast('Exported', 'success');
+  async function exportData() {
+    try {
+      showToast('Generating backup...', 'success');
+      const blob = await backupApi.export(true); // Updates the lastBackupDate
+      const url = URL.createObjectURL(new Blob([blob]));
+      const a = document.createElement('a'); 
+      a.href = url; 
+      a.download = `DentalBackup_${new Date().toISOString().split('T')[0]}.json`; 
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      // Update local state to hide reminders gracefully
+      actions.setSettings({ ...settings, lastBackupDate: new Date().toISOString() });
+      showToast('Backup exported successfully', 'success');
+    } catch (err) {
+      showToast('Failed to export backup: ' + err.message, 'error');
+    }
   }
 
-  function handleImport(e) {
-    const file = e.target.files[0]; if (!file) return;
-    const r = new FileReader();
-    r.onload = async (ev) => {
-      try {
-        const d = JSON.parse(ev.target.result);
-        if (d.appointments) {
-          // eslint-disable-next-line no-empty
-          for (const a of d.appointments) { try { await appointmentsApi.create(a); } catch {} }
-        }
-        showToast('Import complete — refresh to see changes', 'success');
-      } catch { showToast('Invalid file', 'error'); }
-    };
-    r.readAsText(file);
+  async function handleRestore(e) {
+    const file = e.target.files[0]; 
+    if (!file) return;
+    
+    try {
+      showToast('Restoring data...', 'success');
+      const formData = new FormData();
+      formData.append('backupFile', file);
+      
+      const stats = await backupApi.restore(formData);
+      showToast(`Restored: ${stats.appointments} appts, ${stats.clients} clients.`, 'success');
+      setTimeout(() => window.location.reload(), 1500); // hard reload to sync memory
+    } catch (err) {
+      showToast('Failed to restore: ' + err.message, 'error');
+    }
     e.target.value = '';
+  }
+
+  function handlePurge() {
+    actions.openConfirm({
+      title: 'Archive & Purge Old Data',
+      msg: 'This permanently deletes appointments and logs older than 12 months from the active cloud database. Make sure you downloaded a backup first!',
+      onOk: async () => {
+        try {
+          const res = await backupApi.purge(12);
+          actions.closeConfirm();
+          showToast(`Purged ${res.appointmentsDeleted} appointments and ${res.logsDeleted} logs`, 'success');
+          // Quietly removing from local state without full reload
+          actions.setAppointments(state.appointments.filter(a => {
+            const d = new Date(a.date);
+            const cutoff = new Date();
+            cutoff.setMonth(cutoff.getMonth() - 12);
+            return d >= cutoff;
+          }));
+        } catch (err) { showToast(err.message, 'error'); }
+      },
+    });
   }
 
   function resetData() {
@@ -268,18 +300,36 @@ export default function SettingsPage() {
 
           {/* Data Management */}
           <div className="card">
-            <div className="card-header"><h3><i className="fa fa-database" style={{ color: 'var(--warn)', marginRight: 7 }}></i> Data Management</h3></div>
+            <div className="card-header"><h3><i className="fa fa-hdd" style={{ color: 'var(--warn)', marginRight: 7 }}></i> Data Management & Backups</h3></div>
             <div className="card-body">
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%', marginBottom: 9 }} onClick={exportData}>
-                <i className="fa fa-download"></i> Export JSON Backup
-              </button>
-              <button className="btn btn-ghost btn-sm" style={{ width: '100%', marginBottom: 9 }} onClick={() => document.getElementById('import-file').click()}>
-                <i className="fa fa-upload"></i> Import Data
-              </button>
-              <input type="file" id="import-file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+              <div style={{ marginBottom: '16px' }}>
+                <strong style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Full System Backup</strong>
+                <p style={{ fontSize: 11, color: 'var(--text-m)', marginBottom: 8 }}>Export all appointments, clients, and settings.</p>
+                <button className="btn btn-primary btn-sm" style={{ width: '100%', marginBottom: 9 }} onClick={exportData}>
+                  <i className="fa fa-download"></i> Download Full Backup (.json)
+                </button>
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <strong style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>Restore from Backup</strong>
+                <p style={{ fontSize: 11, color: 'var(--text-m)', marginBottom: 8 }}>Safely merges uploaded records into the system.</p>
+                <button className="btn btn-ghost btn-sm" style={{ width: '100%' }} onClick={() => document.getElementById('import-file').click()}>
+                  <i className="fa fa-upload"></i> Upload Backup File
+                </button>
+                <input type="file" id="import-file" accept=".json" style={{ display: 'none' }} onChange={handleRestore} />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <strong style={{ fontSize: 13, display: 'block', marginBottom: 4, color: 'var(--err)' }}>Archive & Purge</strong>
+                <p style={{ fontSize: 11, color: 'var(--text-m)', marginBottom: 8 }}>Delete old appointments safely to free up DB space.</p>
+                <button className="btn btn-ghost btn-sm" style={{ width: '100%', borderColor: 'var(--err-l)', color: 'var(--err)' }} onClick={handlePurge}>
+                  <i className="fa fa-eraser"></i> Purge Data Older Than 1 Year
+                </button>
+              </div>
+
               <hr className="divider" />
               <button className="btn btn-danger btn-sm" style={{ width: '100%' }} onClick={resetData}>
-                <i className="fa fa-trash"></i> Reset All Data
+                <i className="fa fa-trash"></i> Factory Reset System
               </button>
             </div>
           </div>

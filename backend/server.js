@@ -12,7 +12,6 @@ import settingsRouter      from './src/routes/settings.js';
 import usersRouter         from './src/routes/users.js';
 import backupRouter        from './src/routes/backup.js';
 import { errorHandler }    from './src/middleware/errorHandler.js';
-import { requireSuperAdmin } from './src/middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -58,10 +57,10 @@ app.get('/health', (_req, res) => {
 app.use('/api/appointments',  appointmentsRouter);
 app.use('/api/clients',       clientsRouter);
 app.use('/api/blocked-dates', blockedDatesRouter);
-app.use('/api/audit',         requireSuperAdmin, auditRouter);
-app.use('/api/settings',      requireSuperAdmin, settingsRouter);
-app.use('/api/users',         requireSuperAdmin, usersRouter);
-app.use('/api/backup',        requireSuperAdmin, backupRouter);
+app.use('/api/audit',         auditRouter);
+app.use('/api/settings',      settingsRouter);
+app.use('/api/users',         usersRouter);
+app.use('/api/backup',        backupRouter);
 
 // ── SPA fallback – serve index.html for any non-API route ─────────────────
 app.get('*splat', (_req, res) => {

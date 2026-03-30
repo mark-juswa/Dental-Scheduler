@@ -1,8 +1,12 @@
 import express from 'express';
 import multer from 'multer';
 import { exportBackup, restoreBackup, purgeBackup } from '../controllers/backupController.js';
+import { requireAuth, requireSuperAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(requireAuth);
+router.use(requireSuperAdmin);
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });

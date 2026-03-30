@@ -11,7 +11,6 @@ import Topbar from './components/layout/Topbar.jsx';
 import AppointmentModal from './components/modals/AppointmentModal.jsx';
 import { ClientModal, ConfirmModal } from './components/modals/ClientModal.jsx';
 import AppointmentPopover from './components/popover/AppointmentPopover.jsx';
-import BackupReminder from './components/modals/BackupReminder.jsx';
 
 import LoginPage from './pages/LoginPage.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
@@ -147,7 +146,6 @@ function AppShell({ user }) {
       <ClientModal />
       <ConfirmModal />
       <AppointmentPopover />
-      <BackupReminder role={role} />
     </div>
   );
 }

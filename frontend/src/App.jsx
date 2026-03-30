@@ -9,6 +9,7 @@ import { todayPHT } from './utils/calendarHelpers.js';
 import Sidebar from './components/layout/Sidebar.jsx';
 import Topbar from './components/layout/Topbar.jsx';
 import AppointmentModal from './components/modals/AppointmentModal.jsx';
+import { ClientModal, ConfirmModal } from './components/modals/ClientModal.jsx';
 import AppointmentPopover from './components/popover/AppointmentPopover.jsx';
 import BackupReminder from './components/modals/BackupReminder.jsx';
 

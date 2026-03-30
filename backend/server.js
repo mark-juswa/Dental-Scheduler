@@ -64,7 +64,7 @@ app.use('/api/users',         requireSuperAdmin, usersRouter);
 app.use('/api/backup',        requireSuperAdmin, backupRouter);
 
 // ── SPA fallback – serve index.html for any non-API route ─────────────────
-app.get('*', (_req, res) => {
+app.get('*splat', (_req, res) => {
   res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
 });
 

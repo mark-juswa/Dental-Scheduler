@@ -7,6 +7,7 @@ async function addAudit(action, detail, userEmail = 'system') {
 function toDbRow(body) {
   return {
     first_name:     body.firstName,
+    middle_name:    body.middleName    ?? null,
     last_name:      body.lastName,
     address:        body.address,
     contact_number: body.contactNumber,
@@ -20,6 +21,7 @@ function toApiShape(row) {
   return {
     id:            row.id,
     firstName:     row.first_name,
+    middleName:    row.middle_name    ?? '',
     lastName:      row.last_name,
     address:       row.address,
     contactNumber: row.contact_number,
@@ -104,6 +106,7 @@ export async function updateClient(req, res) {
   const updates = {};
 
   if (body.firstName     !== undefined) updates.first_name     = body.firstName;
+  if (body.middleName    !== undefined) updates.middle_name    = body.middleName;
   if (body.lastName      !== undefined) updates.last_name      = body.lastName;
   if (body.address       !== undefined) updates.address        = body.address;
   if (body.contactNumber !== undefined) updates.contact_number = body.contactNumber;

@@ -89,7 +89,7 @@ export default function ClientsPage() {
                             {(c.firstName[0] || '').toUpperCase()}{(c.lastName[0] || '').toUpperCase()}
                           </div>
                           <div>
-                            <strong style={{ fontSize: 13 }}>{c.firstName} {c.lastName}</strong>
+                            <strong style={{ fontSize: 13 }}>{c.firstName} {c.middleName ? c.middleName + ' ' : ''}{c.lastName}</strong>
                             {c.facebookUrl && (
                               <><br /><a href={c.facebookUrl} target="_blank" rel="noopener" style={{ fontSize: 10, color: 'var(--accent)' }}><i className="fab fa-facebook"></i> FB</a></>
                             )}
@@ -121,7 +121,7 @@ export default function ClientsPage() {
         <div className="modal-overlay active" onClick={e => e.target === e.currentTarget && setHistoryClient(null)}>
           <div className="modal modal-lg">
             <div className="modal-header">
-              <h3>History — {historyClient.firstName} {historyClient.lastName}</h3>
+              <h3>History — {historyClient.firstName} {historyClient.middleName ? historyClient.middleName + ' ' : ''}{historyClient.lastName}</h3>
               <button className="close-btn" onClick={() => setHistoryClient(null)}><i className="fa fa-times"></i></button>
             </div>
             <div className="modal-body">

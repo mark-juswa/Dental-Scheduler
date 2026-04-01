@@ -5,7 +5,7 @@ import { showToast } from '../../ui/toastService.js';
 import PhilippineAddressSelect from './PhilippineAddressSelect.jsx';
 import { buildAddressString, parseAddressString } from '../../utils/phAddress.js';
 
-const EMPTY_CLIENT = { firstName: '', lastName: '', contactNumber: '', facebookUrl: '', notes: '' };
+const EMPTY_CLIENT = { firstName: '', middleName: '', lastName: '', contactNumber: '', facebookUrl: '', notes: '' };
 const EMPTY_ADDR = { region: '', regionCode: '', province: '', provinceCode: '', city: '', cityCode: '', barangay: '' };
 
 // ── Client Modal ──────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ export function ClientModal() {
     if (isNew) { setForm({ ...EMPTY_CLIENT }); setAddr({ ...EMPTY_ADDR }); return; }
     const c = clients.find(cl => cl.id === clientModalId);
     if (!c) return;
-    setForm({ firstName: c.firstName, lastName: c.lastName, contactNumber: c.contactNumber, facebookUrl: c.facebookUrl || '', notes: c.notes || '' });
+    setForm({ firstName: c.firstName, middleName: c.middleName || '', lastName: c.lastName, contactNumber: c.contactNumber, facebookUrl: c.facebookUrl || '', notes: c.notes || '' });
     setAddr(parseAddressString(c.address || ''));
   }, [clientModalOpen, clientModalId]);
 
@@ -31,18 +31,18 @@ export function ClientModal() {
   function set(field, val) { setForm(f => ({ ...f, [field]: val })); }
 
   async function handleSave() {
-    const { firstName, lastName, contactNumber, facebookUrl, notes } = form;
+    const { firstName, middleName, lastName, contactNumber, facebookUrl, notes } = form;
     const address = buildAddressString(addr);
     if (!firstName || !lastName || !contactNumber) { showToast('Fill required fields', 'warning'); return; }
     if (!addr.city || !addr.province || !addr.region) { showToast('Please complete the address fields', 'warning'); return; }
     setSaving(true);
     try {
       if (isNew) {
-        const created = await clientsApi.create({ firstName, lastName, address, contactNumber, facebookUrl, notes });
+        const created = await clientsApi.create({ firstName, middleName, lastName, address, contactNumber, facebookUrl, notes });
         actions.addClient(created);
         showToast('Client added', 'success');
       } else {
-        const updated = await clientsApi.update(clientModalId, { firstName, lastName, address, contactNumber, facebookUrl, notes });
+        const updated = await clientsApi.update(clientModalId, { firstName, middleName, lastName, address, contactNumber, facebookUrl, notes });
         actions.updateClient(updated);
         showToast('Client updated', 'success');
       }
@@ -59,8 +59,9 @@ export function ClientModal() {
           <button className="close-btn" onClick={() => actions.closeClientModal()}><i className="fa fa-times"></i></button>
         </div>
         <div className="modal-body">
-          <div className="field-grid-2">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div className="form-group"><label>First Name *</label><input className="form-input" value={form.firstName} onChange={e => set('firstName', e.target.value)} placeholder="Juan" /></div>
+            <div className="form-group"><label>Middle Name <span style={{ fontWeight: 400, color: 'var(--text-m)' }}>(optional)</span></label><input className="form-input" value={form.middleName} onChange={e => set('middleName', e.target.value)} placeholder="Santos" /></div>
             <div className="form-group"><label>Last Name *</label><input className="form-input" value={form.lastName} onChange={e => set('lastName', e.target.value)} placeholder="Dela Cruz" /></div>
           </div>
           <div className="form-group">

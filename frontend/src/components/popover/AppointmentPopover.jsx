@@ -99,7 +99,7 @@ export default function AppointmentPopover() {
           <div className="pop-proc-badge">
             <i className="fa fa-tooth"></i> {PROC_LABELS[appt.procedure] || 'Other'}
           </div>
-          <div className="pop-name">{appt.firstName} {appt.lastName}</div>
+          <div className="pop-name">{appt.firstName} {appt.middleName ? appt.middleName + ' ' : ''}{appt.lastName}</div>
           <div className="pop-sub">
             <span>🕐 {appt.startTime}–{appt.endTime}</span>
             <span style={{ background: 'rgba(255,255,255,.25)', padding: '1px 7px', borderRadius: 20, fontSize: 10, fontWeight: 700 }}>

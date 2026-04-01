@@ -27,11 +27,11 @@ function Field({ label, required, error, hint, children }) {
       {children}
       {error
         ? <span style={{ fontSize: 11, color: 'var(--err)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <i className="fa fa-exclamation-circle" style={{ fontSize: 10 }} /> {error}
-          </span>
+          <i className="fa fa-exclamation-circle" style={{ fontSize: 10 }} /> {error}
+        </span>
         : hint
-        ? <span style={{ fontSize: 11, color: 'var(--text-m)' }}>{hint}</span>
-        : null
+          ? <span style={{ fontSize: 11, color: 'var(--text-m)' }}>{hint}</span>
+          : null
       }
     </div>
   );
@@ -128,15 +128,15 @@ export default function AppointmentModal() {
   function validate() {
     const e = {};
     if (!form.firstName.trim()) e.firstName = 'First name is required';
-    if (!form.lastName.trim())  e.lastName  = 'Last name is required';
+    if (!form.lastName.trim()) e.lastName = 'Last name is required';
     if (!form.contactNumber.trim()) e.contactNumber = 'Contact number is required';
-    if (!form.date)      e.date      = 'Date is required';
+    if (!form.date) e.date = 'Date is required';
     if (!form.startTime) e.startTime = 'Start time is required';
-    if (!form.endTime)   e.endTime   = 'End time is required';
+    if (!form.endTime) e.endTime = 'End time is required';
     if (!form.procedure) e.procedure = 'Please select a procedure';
-    if (!addr.region)   e.address = 'Region is required';
+    if (!addr.region) e.address = 'Region is required';
     else if (!addr.province) e.address = 'Province is required';
-    else if (!addr.city)     e.address = 'City / Municipality is required';
+    else if (!addr.city) e.address = 'City / Municipality is required';
     return e;
   }
 
@@ -278,8 +278,7 @@ export default function AppointmentModal() {
             </div>
 
             {/* Address */}
-            <Field label="Home Address" required error={errors.address}
-              hint="Select Region → Province → City → Barangay">
+            <Field label="Home Address" required error={errors.address}>
               <div style={{ border: errors.address ? '2px solid var(--err)' : '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden', background: errors.address ? 'var(--err-l)' : 'transparent' }}>
                 <PhilippineAddressSelect value={addr} onChange={v => { setAddr(v); if (errors.address) setErrors(e => ({ ...e, address: '' })); }} isNew={isNew} />
               </div>
@@ -287,7 +286,7 @@ export default function AppointmentModal() {
 
             {/* Contact + Facebook */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Field label="Contact Number" required error={errors.contactNumber} hint="e.g. 09XX-XXX-XXXX">
+              <Field label="Contact Number" required error={errors.contactNumber}>
                 <input style={inputCss('contactNumber')} type="tel" value={form.contactNumber}
                   onChange={e => set('contactNumber', e.target.value)} placeholder="09XX-XXX-XXXX" />
               </Field>
@@ -383,8 +382,8 @@ export default function AppointmentModal() {
             {saving
               ? <><i className="fa fa-spinner fa-spin" /> Saving…</>
               : isNew
-              ? <><i className="fa fa-calendar-plus" /> Create Appointment</>
-              : <><i className="fa fa-check" /> Save Changes</>
+                ? <><i className="fa fa-calendar-plus" /> Create Appointment</>
+                : <><i className="fa fa-check" /> Save Changes</>
             }
           </button>
         </div>

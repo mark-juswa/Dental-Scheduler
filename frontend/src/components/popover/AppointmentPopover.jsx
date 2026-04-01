@@ -1,6 +1,7 @@
 import { useApp } from '../../context/useApp.js';
 import { PROC_LABELS } from '../../utils/constants.js';
 import { useProcColors } from '../../hooks/useProcColors.js';
+import { useProcLabels } from '../../hooks/useProcLabels.js';
 import { formatDatePHT } from '../../utils/calendarHelpers.js';
 import { appointmentsApi } from '../../services/apiServices.js';
 import { showToast } from '../../ui/toastService.js';
@@ -9,6 +10,7 @@ export default function AppointmentPopover() {
   const { state, actions } = useApp();
   const { popover, appointments, settings } = state;
   const PROC_COLORS = useProcColors();
+  const PROC_LABELS = useProcLabels();
 
   if (!popover) return null;
 

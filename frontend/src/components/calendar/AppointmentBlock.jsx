@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useApp } from '../../context/useApp.js';
 import { PROC_LABELS, DOCTOR_COLORS } from '../../utils/constants.js';
 import { useProcColors } from '../../hooks/useProcColors.js';
+import { useProcLabels } from '../../hooks/useProcLabels.js';
 import { parseTime, getHH, fmtTime, addMins, durationMins, checkConflict } from '../../utils/calendarHelpers.js';
 import { appointmentsApi } from '../../services/apiServices.js';
 import { showToast } from '../../ui/toastService.js';
@@ -11,6 +12,7 @@ export default function AppointmentBlock({ appt, ws, layout }) {
   const { settings, appointments } = state;
   const blockRef = useRef(null);
   const PROC_COLORS = useProcColors();
+  const PROC_LABELS = useProcLabels();
 
   const c = PROC_COLORS[appt.procedure] || PROC_COLORS.other;
   const hh = getHH(settings.zoomLevel);

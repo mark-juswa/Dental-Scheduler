@@ -2,11 +2,13 @@ import { useApp } from '../context/useApp.js';
 import { todayPHT, fmtDate } from '../utils/calendarHelpers.js';
 import { PROC_LABELS } from '../utils/constants.js';
 import { useProcColors } from '../hooks/useProcColors.js';
+import { useProcLabels } from '../hooks/useProcLabels.js';
 import { useMemo, useState } from 'react';
 
 export default function AnalyticsPage() {
   const { state } = useApp();
   const PROC_COLORS = useProcColors();
+  const PROC_LABELS = useProcLabels();
   const { appointments, clients, settings } = state;
   const dr1Name = settings.dr1Name || 'Dr. A';
   const dr2Name = settings.dr2Name || 'Dr. B';

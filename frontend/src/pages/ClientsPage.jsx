@@ -4,10 +4,12 @@ import { clientsApi } from '../services/apiServices.js';
 import { showToast } from '../ui/toastService.js';
 import { PROC_LABELS } from '../utils/constants.js';
 import { useProcColors } from '../hooks/useProcColors.js';
+import { useProcLabels } from '../hooks/useProcLabels.js';
 
 export default function ClientsPage() {
   const { state, actions } = useApp();
   const PROC_COLORS = useProcColors();
+  const PROC_LABELS = useProcLabels();
   const { clients, appointments, settings } = state;
   const [search, setSearch] = useState('');
   const [historyClient, setHistoryClient] = useState(null);
